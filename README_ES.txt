@@ -89,6 +89,16 @@ Durante el desarrollo y despliegue en entorno local (Windows 11 + VS Code), se i
 * **Causa:** Prompts excesivamente largos aumentan el consumo de tokens, elevan la latencia y provocan mayor tasa de rechazo en servidores saturados.
 * **Solución:** Mantener un *System Prompt* conciso, directo y con restricción estricta al contexto (`ÚNICAMENTE los fragmentos del manual`), priorizando la velocidad de respuesta y la precisión operativa sobre el estilo conversacional.
 
+## 💡 Consejos técnicos rápidos y consideraciones de arquitectura
+
+* **Segmentación y solapamiento (`tamano=800, solapamiento=150`):** Dividir el texto con un solapamiento de 150 caracteres garantiza que las especificaciones críticas o los códigos de error —que podrían quedar justo en el punto de corte— no se fragmenten, preservando así el contexto completo entre los distintos segmentos.
+* **¿Por qué usar *embeddings* locales (`all-MiniLM-L6-v2`)?** Ejecutar el modelo de *embeddings* de forma local permite indexar cientos de páginas de manuales sin incurrir en costes de tokens de API (**$0**), además de mantener la confidencialidad de los documentos técnicos sensibles durante el proceso de vectorización.
+* **Búsqueda semántica frente a búsqueda por palabras clave:** A diferencia de la función `Ctrl + F`, ChromaDB compara el significado semántico de los vectores. Por ejemplo, una búsqueda como *"el brazo no se mueve"* permitirá recuperar secciones tituladas *"Fallo en el servocontrolador"* o *"Eje bloqueado"*.
+* **Almacenamiento en caché con Streamlit (`@st.cache_resource`):** El modelo de *embeddings* (~80 MB) y la conexión con ChromaDB se almacenan en la memoria caché, cargándose una sola vez al iniciar la aplicación; esto evita que la interfaz de usuario se congele cada vez que se realiza una nueva consulta.
+* **Instrucción de fundamentación estricta (*Grounding*):** Obligar al LLM a responder *únicamente* basándose en los fragmentos recuperados evita peligrosas "alucinaciones" en un entorno industrial (como la invención de valores de par o tolerancias de voltaje).
+* **Actualización segura de manuales:** Si añades o sustituyes archivos PDF en el directorio `manuales_pdf/`, elimina la carpeta `chroma_db/` antes de volver a ejecutar `ingestor.py`. Esto evita que los vectores antiguos o duplicados se mezclen con los nuevos.
+* **Seguridad de la clave API:** Nunca incluyas tu clave API de Gemini directamente en el código (`app.py`) ni la subas a GitHub. Utiliza una entrada en la interfaz de usuario durante la ejecución o cárgala mediante variables de entorno (`.env`).
+
 ### 7. Subida accidental de entornos virtuales o bases locales a GitHub
 * **Causa:** Crear el repositorio sin `.gitignore` provoca que Git intente rastrear miles de archivos de `venv/` y binarios de `chroma_db/`.
 * **Solución:** Incluir un `.gitignore` excluyendo `venv/`, `.venv/`, `chroma_db/`, `__pycache__/` y `.env`. Si ya se habían agregado al *staging*, limpiar la caché con `git rm -r --cached .` antes de hacer `git commit`.
