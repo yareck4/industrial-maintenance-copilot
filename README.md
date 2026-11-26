@@ -92,3 +92,13 @@ During local development and deployment (Windows 11 + VS Code), the following co
 ### 7. Accidentally tracking virtual environments or vector DBs in Git
 * **Cause:** Initializing a repository without a `.gitignore` causes Git to stage thousands of files from `venv/` and binary files from `chroma_db/`.
 * **Solution:** Add a `.gitignore` excluding `venv/`, `.venv/`, `chroma_db/`, `__pycache__/`, and `.env`. If already staged, clear the index with `git rm -r --cached .` before committing.
+
+## 💡 Quick Technical Tips & Architecture Insights
+
+* **Chunking & Overlap (`tamano=800, solapamiento=150`):** Splitting text with a 150-character overlap ensures that critical specs or error codes sitting right at the edge of a cut aren't broken in half, preserving full context across segments.
+* **Why Local Embeddings (`all-MiniLM-L6-v2`)?** Running the embedding model locally means indexing hundreds of manual pages costs **$0 in API tokens** and keeps sensitive technical documents private during vectorization.
+* **Semantic Search vs. Keyword Search:** Unlike `Ctrl + F`, ChromaDB compares vector meanings. Searching for *"arm won't move"* will still retrieve sections titled *"Servo Drive Fault"* or *"Axis Locked"*.
+* **Streamlit Caching (`@st.cache_resource`):** The embedding model (~80 MB) and ChromaDB connection are cached in memory so they load only once at startup, preventing UI freezes on every new question.
+* **Strict Grounding Prompt:** Forcing the LLM to answer *only* from retrieved chunks prevents dangerous industrial hallucinations (like inventing torque values or voltage tolerances).
+* **Updating Manuals Safely:** If you add or replace PDFs inside `manuales_pdf/`, delete the `chroma_db/` folder before re-running `ingestor.py` so old or duplicate vectors don't mix with new ones.
+* **API Key Security:** Never hardcode your Gemini API Key inside `app.py` or push it to GitHub. Keep it as a runtime UI input or load it via environment variables (`.env`).
